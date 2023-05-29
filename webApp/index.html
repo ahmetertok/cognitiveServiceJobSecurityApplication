@@ -1,26 +1,24 @@
 <!DOCTYPE html>
 <html>
-
 <head>
   <meta charset="UTF-8">
-  <title>Work safety</title>
+  <title>Work Safety</title>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
-
 <body>
-  <h1>Work safety</h1>
+  <h1>Work Safety</h1>
   <strong>Take your photo</strong> to get started.
   <br><br>
   Registry code:
-  <input type="text" name="inputRegistry" id="inputRegistry"/>
-  
+  <input type="text" name="inputRegistry" id="inputRegistry" />
+
   <br><br>
   <div id="wrapper" style="width:1220px; display:table;">
     <div style="width:400px; display:table-cell;">
       Camera:
       <br><br>
       <video id="video" width="400" height="300"></video><br>
-      <button id="captureButton">Fotoğraf Çek</button>
+      <button id="captureButton">Test me</button>
     </div>
     <div id="imageDiv" style="width:420px; display:table-cell;">
       Captured Photo:
@@ -32,12 +30,10 @@
       <br><br>
       <textarea id="responseTextArea" class="UIInput" style="width:580px; height:400px;"></textarea>
     </div>
-
   </div>
 
-
   <script>
-    // Kamerayı başlat
+    // Start the camera
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(function (stream) {
         var video = document.getElementById('video');
@@ -45,10 +41,10 @@
         video.play();
       })
       .catch(function (error) {
-        console.log('Kamera başlatılamadı: ', error);
+        console.log('Failed to start camera: ', error);
       });
 
-    // Fotoğraf çek düğmesine tıklandığında
+    // When the capture button is clicked
     document.getElementById('captureButton').addEventListener('click', function () {
       var video = document.getElementById('video');
       var canvas = document.createElement('canvas');
@@ -58,75 +54,97 @@
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       var imageDataURL = canvas.toDataURL('image/jpeg');
 
-      // Fotoğrafı sunucuya yükle
+      // Upload the photo to the server
       $.ajax({
         type: 'POST',
         url: 'http://13.70.197.37/upload.php',
         data: { image: imageDataURL },
         success: function (response) {
-          // Yükleme başarılı olduysa, dosya URL'sini al
+          // If the upload is successful, get the file URL
           var fileUrl = response;
-          console.log('Dosya URL\'si:', fileUrl);
+          console.log('File URL:', fileUrl);
 
           var key = "8034f5dda83844d5bf22014a14153319";
           var endpoint = "https://cooopcognitive.cognitiveservices.azure.com/";
 
           var uriBase = endpoint + "vision/v3.1/analyze";
 
-          // Request parameters.
+          // Request parameters
           var params = {
             "visualFeatures": "Categories,Description,Color",
             "details": "",
             "language": "en",
           };
 
-          // Display the image.
+          // Display the image
           var sourceImageUrl = fileUrl;
           document.querySelector("#sourceImage").src = sourceImageUrl;
 
-          // Make the REST API call.
+          // Make the REST API call
           $.ajax({
             url: uriBase + "?" + $.param(params),
 
-            // Request headers.
+            // Request headers
             beforeSend: function (xhrObj) {
               xhrObj.setRequestHeader("Content-Type", "application/json");
-              xhrObj.setRequestHeader(
-                "Ocp-Apim-Subscription-Key", key);
+              xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key", key);
             },
 
             type: "POST",
 
-            // Request body.
+            // Request body
             data: '{"url": ' + '"' + sourceImageUrl + '"}',
           })
-
             .done(function (data) {
-              // Show formatted JSON on webpage.
+              var registry_code_txt = document.getElementById("inputRegistry").value;
+              // Show formatted JSON on the webpage
               $("#responseTextArea").val(JSON.stringify(data, null, 2));
+
+              // Check if the response contains "hat"
               if (JSON.stringify(data, null, 2).includes("hat")) {
                 document.body.style.backgroundColor = "green";
+                $.ajax({
+                  type: 'POST',
+                  url: 'http://13.70.197.37/addData.php',
+                  data: { registry_code: registry_code_txt, helmet_taking: 1 },
+                  success: function (response) {
+                    var response_txt = response;
+                    console.log("Done", response_txt);
+                  },
+                  error: function (error) {
+                    console.log('Failed: ', error);
+                  }
+                });
               } else {
                 document.body.style.backgroundColor = "red";
+                $.ajax({
+                  type: 'POST',
+                  url: 'http://13.70.197.37/addData.php',
+                  data: { registry_code: registry_code_txt },
+                  success: function (response) {
+                    var response_txt = response;
+                    console.log("Done", response_txt);
+                  },
+                  error: function (error) {
+                    console.log('Failed: ', error);
+                  }
+                });
               }
             })
-
             .fail(function (jqXHR, textStatus, errorThrown) {
-              // Display error message.
+              // Display error message
               var errorString = (errorThrown === "") ? "Error. " :
                 errorThrown + " (" + jqXHR.status + "): ";
               errorString += (jqXHR.responseText === "") ? "" :
                 jQuery.parseJSON(jqXHR.responseText).message;
               alert(errorString);
             });
-
         },
         error: function (error) {
-          console.log('Yükleme başarısız: ', error);
+          console.log('Upload failed: ', error);
         }
       });
     });
   </script>
 </body>
-
 </html>
