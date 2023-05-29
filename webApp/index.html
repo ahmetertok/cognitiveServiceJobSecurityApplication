@@ -100,8 +100,8 @@
               // Show formatted JSON on the webpage
               $("#responseTextArea").val(JSON.stringify(data, null, 2));
 
-              // Check if the response contains "hat"
-              if (JSON.stringify(data, null, 2).includes("hat")) {
+              // Check if the response contains "hat","helmet"
+              if (JSON.stringify(data, null, 2).includes("hat")&&JSON.stringify(data, null, 2).includes("helmet")) {
                 document.body.style.backgroundColor = "green";
                 $.ajax({
                   type: 'POST',
